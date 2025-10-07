@@ -1,14 +1,18 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { parseResults, type ParsedResults, type TestResult } from '@/utils/resultParser';
 
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [results, setResults] = useState<any>(null);
+  const [rawResults, setRawResults] = useState<any>(null);
+  const [parsedResults, setParsedResults] = useState<ParsedResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [stars, setStars] = useState<Array<{x: number, y: number, size: number, opacity: number}>>([]);
   const [particles, setParticles] = useState<Array<{x: number, y: number, size: number, animationDuration: number, animationDelay: number}>>([]);
+  const [activeTab, setActiveTab] = useState<'diagnostics' | 'tests' | null>(null);
+  const [diagnosticCategory, setDiagnosticCategory] = useState<'categories' | 'diagnostics' | 'metrics' | 'all'>('all');
 
   // Create random stars for the background on client side only to prevent hydration errors
   useEffect(() => {
@@ -57,7 +61,11 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setResults(data.results);
+      setRawResults(data);
+      
+      // Parse the results using our utility function
+      const parsed = parseResults(data.results);
+      setParsedResults(parsed);
     } catch (err) {
       setError('Failed to fetch data from the API. Make sure the server is running.');
       console.error(err);
@@ -65,6 +73,11 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+  // Filter diagnostics based on selected category
+  const filteredDiagnostics = parsedResults?.diagnostics?.filter(diag => 
+    diagnosticCategory === 'all' || diag.category === diagnosticCategory
+  ) || [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white overflow-hidden relative">
@@ -105,7 +118,7 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
-        <div className="max-w-2xl w-full text-center">
+        <div className="max-w-4xl w-full text-center">
           {/* Spaceship logo */}
           <div className="flex justify-center mb-6">
             <div className="w-24 h-24">
@@ -128,7 +141,7 @@ export default function Home() {
                 <circle cx="50" cy="40" r="4" fill="#ffffff" />
                 
                 {/* Glow effect */}
-                <circle cx="50" cy="50" r="35" fill="none" stroke="#818cf8" stroke-width="2" stroke-opacity="0.3" />
+                <circle cx="50" cy="50" r="35" fill="none" stroke="#818cf8" strokeWidth="2" strokeOpacity="0.3" />
               </svg>
             </div>
           </div>
@@ -138,7 +151,7 @@ export default function Home() {
             Crash Lander
           </h1>
           <p className="text-lg text-gray-300 mb-10">
-            Navigate the cosmos of web quality with comprehensive QA testing
+            Comprehensive QA Testing Dashboard
           </p>
 
           {/* Form section */}
@@ -171,31 +184,233 @@ export default function Home() {
           </div>
 
           {/* Results section */}
-          {results && (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl">
-              <h2 className="text-xl font-bold text-white mb-6">Scan Results for: {results.url}</h2>
+          {rawResults && (
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl w-full">
+              <h2 className="text-xl font-bold text-white mb-6">Scan Results for: {rawResults?.url}</h2>
               
-              <div className="space-y-6">
-                {results.results.map((result: any, index: number) => (
-                  <div key={index} className="border border-gray-600 rounded-xl p-4 bg-gray-900/30">
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-lg font-medium text-white">{result.type}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        result.status === 'PASS' 
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                      }`}>
-                        {result.status}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-sm text-gray-300">
-                      <pre className="bg-gray-900/50 p-3 rounded-lg overflow-x-auto text-left">
-                        {JSON.stringify(result.result, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                ))}
+              {/* Tabs for Diagnostics and Tests */}
+              <div className="flex border-b border-gray-600 mb-6">
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    activeTab === 'diagnostics' || activeTab === null
+                      ? 'text-purple-400 border-b-2 border-purple-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                  onClick={() => setActiveTab('diagnostics')}
+                >
+                  Diagnostics
+                </button>
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    activeTab === 'tests'
+                      ? 'text-purple-400 border-b-2 border-purple-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                  onClick={() => setActiveTab('tests')}
+                >
+                  Tests
+                </button>
               </div>
+
+              {/* Diagnostics section with subcategories */}
+              {(activeTab === 'diagnostics' || activeTab === null) && (
+                <div>
+                  <div className="flex flex-wrap gap-2 mb-4">
+                    <button
+                      className={`px-3 py-1 text-sm rounded-lg ${
+                        diagnosticCategory === 'all'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                      onClick={() => setDiagnosticCategory('all')}
+                    >
+                      All
+                    </button>
+                    <button
+                      className={`px-3 py-1 text-sm rounded-lg ${
+                        diagnosticCategory === 'categories'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                      onClick={() => setDiagnosticCategory('categories')}
+                    >
+                      Categories
+                    </button>
+                    <button
+                      className={`px-3 py-1 text-sm rounded-lg ${
+                        diagnosticCategory === 'diagnostics'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                      onClick={() => setDiagnosticCategory('diagnostics')}
+                    >
+                      Diagnostics
+                    </button>
+                    <button
+                      className={`px-3 py-1 text-sm rounded-lg ${
+                        diagnosticCategory === 'metrics'
+                          ? 'bg-purple-600 text-white'
+                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
+                      }`}
+                      onClick={() => setDiagnosticCategory('metrics')}
+                    >
+                      Metrics
+                    </button>
+                  </div>
+
+                  <div className="space-y-4">
+                    {parsedResults && filteredDiagnostics.length > 0 ? (
+                      filteredDiagnostics.map((diag: TestResult, index: number) => (
+                        <div key={index} className="flex items-center gap-4 p-4 bg-gray-900/40 rounded-xl border border-gray-700">
+                          <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
+                            {diag.name}
+                          </div>
+                          <div className="flex items-center gap-2 min-w-[100px] justify-end">
+                            <span className={`text-sm font-semibold ${
+                              diag.status === 'PASS' ? 'text-green-400' : 'text-red-400'
+                            }`}>
+                              {typeof diag.value === 'number' ? 
+                                diag.value.toFixed(2) : 
+                                (diag.value !== undefined && diag.value !== null && String(diag.value) !== 'N/A' ? 
+                                  String(diag.value) : 
+                                  '')}
+                            </span>
+                            <span className={`text-sm px-3 py-1.5 rounded-full ${
+                              diag.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                            }`}>
+                              {diag.status}
+                            </span>
+                          </div>
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-center py-8 text-gray-400">
+                        No diagnostics found in this category
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              {/* Tests section */}
+              {activeTab === 'tests' && parsedResults && (
+                <div className="space-y-4">
+                  {parsedResults.tests && parsedResults.tests.length > 0 ? (
+                    parsedResults.tests.map((test: TestResult, index: number) => (
+                      <div key={index} className="flex items-center gap-4 p-4 bg-gray-900/40 rounded-xl border border-gray-700">
+                        <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
+                          {test.name}
+                        </div>
+                        <div className="flex items-center gap-2 min-w-[100px] justify-end">
+                          <span className={`text-sm font-semibold ${
+                            test.status === 'PASS' ? 'text-green-400' : 'text-red-400'
+                          }`}>
+                            {test.value !== undefined && test.value !== null && String(test.value) !== 'N/A' ? 
+                              String(test.value) : 
+                              ''}
+                          </span>
+                          <span className={`text-sm px-3 py-1.5 rounded-full ${
+                            test.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                          }`}>
+                            {test.status}
+                          </span>
+                        </div>
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-center py-8 text-gray-400">
+                      No tests found
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {/* Show both when no tab is selected */}
+              {activeTab === null && (
+                <>
+                  {/* Diagnostics */}
+                  {parsedResults && parsedResults.diagnostics && parsedResults.diagnostics.length > 0 && (
+                    <div className="mb-8">
+                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                        <span className="mr-2">🔍</span> Diagnostics
+                      </h3>
+                      <div className="space-y-3">
+                        {parsedResults.diagnostics.slice(0, 5).map((diag: TestResult, index: number) => (
+                          <div key={index} className="flex items-center gap-4 p-3 bg-gray-900/40 rounded-lg border border-gray-600">
+                            <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
+                              {diag.name}
+                            </div>
+                            <div className="flex items-center gap-2 min-w-[100px] justify-end">
+                              <span className={`text-sm font-semibold ${
+                                diag.status === 'PASS' ? 'text-green-400' : 'text-red-400'
+                              }`}>
+                                {typeof diag.value === 'number' ? 
+                                  diag.value.toFixed(2) : 
+                                  (diag.value !== undefined && diag.value !== null && String(diag.value) !== 'N/A' ? 
+                                    String(diag.value) : 
+                                    '')}
+                              </span>
+                              <span className={`text-sm px-3 py-1.5 rounded-full ${
+                                diag.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                              }`}>
+                                {diag.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {parsedResults.diagnostics.length > 5 && (
+                          <button 
+                            className="mt-3 text-sm text-purple-400 hover:text-purple-300"
+                            onClick={() => setActiveTab('diagnostics')}
+                          >
+                            View all diagnostics ({parsedResults.diagnostics.length})
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Tests */}
+                  {parsedResults && parsedResults.tests && parsedResults.tests.length > 0 && (
+                    <div>
+                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
+                        <span className="mr-2">🧪</span> Tests
+                      </h3>
+                      <div className="space-y-3">
+                        {parsedResults.tests.slice(0, 5).map((test: TestResult, index: number) => (
+                          <div key={index} className="flex items-center gap-4 p-3 bg-gray-900/40 rounded-lg border border-gray-600">
+                            <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
+                              {test.name}
+                            </div>
+                            <div className="flex items-center gap-2 min-w-[100px] justify-end">
+                              <span className={`text-sm font-semibold ${
+                                test.status === 'PASS' ? 'text-green-400' : 'text-red-400'
+                              }`}>
+                                {test.value !== undefined && test.value !== null && String(test.value) !== 'N/A' ? 
+                                  String(test.value) : 
+                                  ''}
+                              </span>
+                              <span className={`text-sm px-3 py-1.5 rounded-full ${
+                                test.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
+                              }`}>
+                                {test.status}
+                              </span>
+                            </div>
+                          </div>
+                        ))}
+                        {parsedResults.tests.length > 5 && (
+                          <button 
+                            className="mt-3 text-sm text-purple-400 hover:text-purple-300"
+                            onClick={() => setActiveTab('tests')}
+                          >
+                            View all tests ({parsedResults.tests.length})
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
           )}
         </div>

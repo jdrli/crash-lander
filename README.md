@@ -44,10 +44,11 @@ https://github.com/user-attachments/assets/3cf7e5f6-5afe-4e69-8157-d3fd359d90d9
 
 <!-- FUTURE FUNCTIONALITY SECTION -->
 
-- Sped up loading time, coupled with loading animations to indicate status and progress (back-end).
+- Speed up loading time and improve API performance (back-end).
+- Implement animations and loading + progress bars to indicate state (front-end)
 - Details regarding each diagnostic and why it earned a particular score (front-end).
 - Dropdowns detailing each specific test and why it passed/failed (front-end).
-- Actionable next steps for landing page performance improvement.
+- Outline actionable next steps for landing page performance improvement (front-end).
 
 ## Technology Stack
 

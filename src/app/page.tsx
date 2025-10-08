@@ -2,6 +2,9 @@
 
 import { useState, useEffect } from 'react';
 import { parseResults, type ParsedResults, type TestResult } from '@/utils/resultParser';
+import OverallTab from '@/components/OverallTab';
+import DiagnosticsTab from '@/components/DiagnosticsTab';
+import TestsTab from '@/components/TestsTab';
 
 export default function Home() {
   const [url, setUrl] = useState('');
@@ -11,7 +14,8 @@ export default function Home() {
   const [error, setError] = useState('');
   const [stars, setStars] = useState<Array<{x: number, y: number, size: number, opacity: number}>>([]);
   const [particles, setParticles] = useState<Array<{x: number, y: number, size: number, animationDuration: number, animationDelay: number}>>([]);
-  const [activeTab, setActiveTab] = useState<'diagnostics' | 'tests' | null>(null);
+  const [activeTab, setActiveTab] = useState<'overall' | 'diagnostics' | 'tests'>('overall');
+  const [animationKey, setAnimationKey] = useState(0);
   const [diagnosticCategory, setDiagnosticCategory] = useState<'categories' | 'diagnostics' | 'metrics' | 'all'>('all');
 
   // Create random stars for the background on client side only to prevent hydration errors
@@ -78,6 +82,8 @@ export default function Home() {
   const filteredDiagnostics = parsedResults?.diagnostics?.filter(diag => 
     diagnosticCategory === 'all' || diag.category === diagnosticCategory
   ) || [];
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white overflow-hidden relative">
@@ -185,18 +191,28 @@ export default function Home() {
 
           {/* Results section */}
           {rawResults && (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl w-full">
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl w-full transition-all duration-300 ease-in-out">
               <h2 className="text-xl font-bold text-white mb-6">Scan Results for: {rawResults?.url}</h2>
               
               {/* Tabs for Diagnostics and Tests */}
               <div className="flex border-b border-gray-600 mb-6">
                 <button
                   className={`py-2 px-4 font-medium text-sm ${
-                    activeTab === 'diagnostics' || activeTab === null
+                    activeTab === 'overall'
                       ? 'text-purple-400 border-b-2 border-purple-400'
                       : 'text-gray-400 hover:text-gray-300'
                   }`}
-                  onClick={() => setActiveTab('diagnostics')}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('overall'); setAnimationKey(prev => prev + 1); }}
+                >
+                  Overall
+                </button>
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    activeTab === 'diagnostics'
+                      ? 'text-purple-400 border-b-2 border-purple-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('diagnostics'); setAnimationKey(prev => prev + 1); }}
                 >
                   Diagnostics
                 </button>
@@ -206,211 +222,29 @@ export default function Home() {
                       ? 'text-purple-400 border-b-2 border-purple-400'
                       : 'text-gray-400 hover:text-gray-300'
                   }`}
-                  onClick={() => setActiveTab('tests')}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('tests'); setAnimationKey(prev => prev + 1); }}
                 >
                   Tests
                 </button>
               </div>
 
-              {/* Diagnostics section with subcategories */}
-              {(activeTab === 'diagnostics' || activeTab === null) && (
-                <div>
-                  <div className="flex flex-wrap gap-2 mb-4">
-                    <button
-                      className={`px-3 py-1 text-sm rounded-lg ${
-                        diagnosticCategory === 'all'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                      onClick={() => setDiagnosticCategory('all')}
-                    >
-                      All
-                    </button>
-                    <button
-                      className={`px-3 py-1 text-sm rounded-lg ${
-                        diagnosticCategory === 'categories'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                      onClick={() => setDiagnosticCategory('categories')}
-                    >
-                      Categories
-                    </button>
-                    <button
-                      className={`px-3 py-1 text-sm rounded-lg ${
-                        diagnosticCategory === 'diagnostics'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                      onClick={() => setDiagnosticCategory('diagnostics')}
-                    >
-                      Diagnostics
-                    </button>
-                    <button
-                      className={`px-3 py-1 text-sm rounded-lg ${
-                        diagnosticCategory === 'metrics'
-                          ? 'bg-purple-600 text-white'
-                          : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-                      }`}
-                      onClick={() => setDiagnosticCategory('metrics')}
-                    >
-                      Metrics
-                    </button>
-                  </div>
+              {/* Content container to prevent layout shifts */}
+              <div className="relative min-h-[300px]">
+                {/* Overall section showing average of all diagnostics */}
+                {activeTab === 'overall' && parsedResults && (
+                  <OverallTab diagnostics={parsedResults.diagnostics} key={`overall-${animationKey}`} />
+                )}
 
-                  <div className="space-y-4">
-                    {parsedResults && filteredDiagnostics.length > 0 ? (
-                      filteredDiagnostics.map((diag: TestResult, index: number) => (
-                        <div key={index} className="flex items-center gap-4 p-4 bg-gray-900/40 rounded-xl border border-gray-700">
-                          <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
-                            {diag.name}
-                          </div>
-                          <div className="flex items-center gap-2 min-w-[100px] justify-end">
-                            <span className={`text-sm font-semibold ${
-                              diag.status === 'PASS' ? 'text-green-400' : 'text-red-400'
-                            }`}>
-                              {typeof diag.value === 'number' ? 
-                                diag.value.toFixed(2) : 
-                                (diag.value !== undefined && diag.value !== null && String(diag.value) !== 'N/A' ? 
-                                  String(diag.value) : 
-                                  '')}
-                            </span>
-                            <span className={`text-sm px-3 py-1.5 rounded-full ${
-                              diag.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                            }`}>
-                              {diag.status}
-                            </span>
-                          </div>
-                        </div>
-                      ))
-                    ) : (
-                      <div className="text-center py-8 text-gray-400">
-                        No diagnostics found in this category
-                      </div>
-                    )}
-                  </div>
-                </div>
-              )}
+                {/* Diagnostics section with circular progress bars in a row */}
+                {activeTab === 'diagnostics' && parsedResults && (
+                  <DiagnosticsTab diagnostics={parsedResults.diagnostics} key={`diagnostics-${animationKey}`} />
+                )}
 
-              {/* Tests section */}
-              {activeTab === 'tests' && parsedResults && (
-                <div className="space-y-4">
-                  {parsedResults.tests && parsedResults.tests.length > 0 ? (
-                    parsedResults.tests.map((test: TestResult, index: number) => (
-                      <div key={index} className="flex items-center gap-4 p-4 bg-gray-900/40 rounded-xl border border-gray-700">
-                        <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
-                          {test.name}
-                        </div>
-                        <div className="flex items-center gap-2 min-w-[100px] justify-end">
-                          <span className={`text-sm font-semibold ${
-                            test.status === 'PASS' ? 'text-green-400' : 'text-red-400'
-                          }`}>
-                            {test.value !== undefined && test.value !== null && String(test.value) !== 'N/A' ? 
-                              String(test.value) : 
-                              ''}
-                          </span>
-                          <span className={`text-sm px-3 py-1.5 rounded-full ${
-                            test.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                          }`}>
-                            {test.status}
-                          </span>
-                        </div>
-                      </div>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-gray-400">
-                      No tests found
-                    </div>
-                  )}
-                </div>
-              )}
-
-              {/* Show both when no tab is selected */}
-              {activeTab === null && (
-                <>
-                  {/* Diagnostics */}
-                  {parsedResults && parsedResults.diagnostics && parsedResults.diagnostics.length > 0 && (
-                    <div className="mb-8">
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                        <span className="mr-2">🔍</span> Diagnostics
-                      </h3>
-                      <div className="space-y-3">
-                        {parsedResults.diagnostics.slice(0, 5).map((diag: TestResult, index: number) => (
-                          <div key={index} className="flex items-center gap-4 p-3 bg-gray-900/40 rounded-lg border border-gray-600">
-                            <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
-                              {diag.name}
-                            </div>
-                            <div className="flex items-center gap-2 min-w-[100px] justify-end">
-                              <span className={`text-sm font-semibold ${
-                                diag.status === 'PASS' ? 'text-green-400' : 'text-red-400'
-                              }`}>
-                                {typeof diag.value === 'number' ? 
-                                  diag.value.toFixed(2) : 
-                                  (diag.value !== undefined && diag.value !== null && String(diag.value) !== 'N/A' ? 
-                                    String(diag.value) : 
-                                    '')}
-                              </span>
-                              <span className={`text-sm px-3 py-1.5 rounded-full ${
-                                diag.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                              }`}>
-                                {diag.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        {parsedResults.diagnostics.length > 5 && (
-                          <button 
-                            className="mt-3 text-sm text-purple-400 hover:text-purple-300"
-                            onClick={() => setActiveTab('diagnostics')}
-                          >
-                            View all diagnostics ({parsedResults.diagnostics.length})
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Tests */}
-                  {parsedResults && parsedResults.tests && parsedResults.tests.length > 0 && (
-                    <div>
-                      <h3 className="text-lg font-semibold text-white mb-4 flex items-center">
-                        <span className="mr-2">🧪</span> Tests
-                      </h3>
-                      <div className="space-y-3">
-                        {parsedResults.tests.slice(0, 5).map((test: TestResult, index: number) => (
-                          <div key={index} className="flex items-center gap-4 p-3 bg-gray-900/40 rounded-lg border border-gray-600">
-                            <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
-                              {test.name}
-                            </div>
-                            <div className="flex items-center gap-2 min-w-[100px] justify-end">
-                              <span className={`text-sm font-semibold ${
-                                test.status === 'PASS' ? 'text-green-400' : 'text-red-400'
-                              }`}>
-                                {test.value !== undefined && test.value !== null && String(test.value) !== 'N/A' ? 
-                                  String(test.value) : 
-                                  ''}
-                              </span>
-                              <span className={`text-sm px-3 py-1.5 rounded-full ${
-                                test.status === 'PASS' ? 'bg-green-500/20 text-green-400' : 'bg-red-500/20 text-red-400'
-                              }`}>
-                                {test.status}
-                              </span>
-                            </div>
-                          </div>
-                        ))}
-                        {parsedResults.tests.length > 5 && (
-                          <button 
-                            className="mt-3 text-sm text-purple-400 hover:text-purple-300"
-                            onClick={() => setActiveTab('tests')}
-                          >
-                            View all tests ({parsedResults.tests.length})
-                          </button>
-                        )}
-                      </div>
-                    </div>
-                  )}
-                </>
-              )}
+                {/* Tests section */}
+                {activeTab === 'tests' && parsedResults && (
+                  <TestsTab tests={parsedResults.tests} key={`tests-${animationKey}`} />
+                )}
+              </div> {/* Closing relative container */}
             </div>
           )}
         </div>
@@ -418,6 +252,14 @@ export default function Home() {
 
       {/* Custom animation styles */}
       <style jsx global>{`
+        @keyframes float {
+          0% { transform: translate(0, 0) rotate(0deg); }
+          25% { transform: translate(5px, 10px) rotate(5deg); }
+          50% { transform: translate(0, 5px) rotate(0deg); }
+          75% { transform: translate(-5px, 10px) rotate(-5deg); }
+          100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        
         @keyframes float {
           0% { transform: translate(0, 0) rotate(0deg); }
           25% { transform: translate(5px, 10px) rotate(5deg); }

@@ -101,73 +101,30 @@ export const parseResults = (apiResults: any): ParsedResults => {
     if (resultType.includes('lighthouse') || resultType.includes('diagnostic') || resultType.includes('performance')) {
       // Handle Lighthouse results specifically - only add to diagnostics
       if (result.result && typeof result.result === 'object' && result.result.categories) {
-        // This is a Lighthouse result with categories, diagnostics, and metrics
+        // This is a Lighthouse result - only extract the four main categories
         const lighthouseResult = result.result;
         
-        // Process categories (performance, accessibility, best-practices, seo, pwa)
+        // Process only the four main categories: performance, accessibility, best-practices, seo
         if (lighthouseResult.categories) {
+          const allowedCategories = ['performance', 'accessibility', 'best-practices', 'seo'];
+          
           Object.entries(lighthouseResult.categories).forEach(([categoryName, categoryData]: [string, any]) => {
-            if (categoryName !== 'pwa' || (Array.isArray(categoryData) && categoryData.length > 0) || 
-                (!Array.isArray(categoryData) && categoryData && typeof categoryData === 'object' && categoryData.score !== undefined)) {
+            if (allowedCategories.includes(categoryName)) {
+              // Format the category name properly
+              let displayName = categoryName;
+              if (categoryName === 'best-practices') displayName = 'Best Practices';
+              else if (categoryName === 'seo') displayName = 'SEO';
+              else if (categoryName === 'pwa') displayName = 'PWA'; // In case PWA appears somehow
+              else displayName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1);
+              
               diagnostics.push({
-                name: categoryName.charAt(0).toUpperCase() + categoryName.slice(1),  // Capitalize first letter
+                name: displayName,
                 value: categoryData && typeof categoryData === 'object' ? categoryData.score : categoryData,
                 status: determineStatus(categoryData && typeof categoryData === 'object' ? categoryData.score : categoryData),
                 type: 'diagnostic',
                 category: 'categories'
               });
             }
-          });
-        }
-        
-        // Process diagnostics (detailed performance metrics, accessibility checks, etc.)
-        if (lighthouseResult.diagnostics) {
-          Object.entries(lighthouseResult.diagnostics).forEach(([diagType, diagItems]: [string, unknown]) => {
-            if (Array.isArray(diagItems)) {
-              (diagItems as any[]).forEach((item: any) => {
-                if (item && typeof item === 'object') {
-                  // Format the value to avoid [object Object] - show meaningful properties
-                  let formattedValue = item.displayValue || item.score || item.value;
-                  if (formattedValue === undefined || formattedValue === null) {
-                    if (item.displayValue !== undefined) formattedValue = item.displayValue;
-                    else if (item.score !== undefined) formattedValue = item.score;
-                    else if (item.value !== undefined) formattedValue = item.value;
-                    else if (typeof item === 'object') {
-                      // Create a meaningful string from the object
-                      if (item.title) formattedValue = item.title;
-                      else if (item.id) formattedValue = item.id;
-                      else if (item.name) formattedValue = item.name;
-                      else if (item.message) formattedValue = item.message;
-                      else if (item.rawValue) formattedValue = item.rawValue;
-                      else formattedValue = JSON.stringify(item); // Last resort
-                    } else {
-                      formattedValue = String(item);
-                    }
-                  }
-                  
-                  diagnostics.push({
-                    name: item.title || item.id || item.name || 'Unknown Diagnostic',
-                    value: formattedValue as (string | number | boolean | undefined),
-                    status: determineStatus(item.score || item.value),
-                    type: 'diagnostic',
-                    category: 'diagnostics'
-                  });
-                }
-              });
-            }
-          });
-        }
-        
-        // Process metrics (FCP, LCP, FID, CLS, SI, TBT)
-        if (lighthouseResult.metrics) {
-          Object.entries(lighthouseResult.metrics).forEach(([metricName, metricValue]: [string, any]) => {
-            diagnostics.push({
-              name: metricName.toUpperCase(), // Convert to uppercase (e.g., fcp -> FCP)
-              value: metricValue as (string | number | boolean | undefined),
-              status: determineStatus(metricValue), // This will convert numeric values to pass/fail
-              type: 'diagnostic',
-              category: 'metrics'
-            });
           });
         }
       } else {

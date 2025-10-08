@@ -7,24 +7,35 @@ interface CircularProgressProps {
   size?: number;
   strokeWidth?: number;
   isOverall?: boolean;
+  label?: string;
 }
 
 const CircularProgress: React.FC<CircularProgressProps> = ({ 
   value, 
   size = 60, 
   strokeWidth = 6,
-  isOverall = false
+  isOverall = false,
+  label = "Progress"
 }) => {
   const normalizedValue = value ? Math.max(0, Math.min(1, value)) : 0;
   const radius = (size - strokeWidth) / 2;
   const circumference = radius * 2 * Math.PI;
   const targetOffset = circumference - normalizedValue * circumference;
+  const percentage = Math.round((normalizedValue ?? 0) * 100);
 
   // Generate a unique key to force animation restart
   const animationKey = `${size}-${strokeWidth}-${normalizedValue}`;
 
   return (
-    <div className="relative inline-flex items-center justify-center" style={{ width: size, height: size }}>
+    <div 
+      className="relative inline-flex items-center justify-center" 
+      style={{ width: size, height: size }}
+      role="progressbar"
+      aria-valuenow={percentage}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={label}
+    >
       <svg
         className="absolute inset-0 origin-center"
         width={size}

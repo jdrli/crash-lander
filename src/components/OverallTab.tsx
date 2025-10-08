@@ -2,10 +2,9 @@
 
 import React from 'react';
 import CircularProgress from './CircularProgress';
-import { TestResult } from '@/utils/resultParser';
 
 interface OverallTabProps {
-  diagnostics: TestResult[];
+  diagnostics: any[];
 }
 
 const OverallTab: React.FC<OverallTabProps> = ({ diagnostics }) => {
@@ -19,11 +18,19 @@ const OverallTab: React.FC<OverallTabProps> = ({ diagnostics }) => {
     );
   }
 
+  // Precompute diagnostic values to avoid multiple array scans
+  const diagnosticMap = new Map<string, any>();
+  diagnostics.forEach(d => {
+    if (['Performance', 'Accessibility', 'Best Practices', 'SEO'].includes(d.name)) {
+      diagnosticMap.set(d.name, d);
+    }
+  });
+
   // Calculate average score
-  const perf = diagnostics.find(d => d.name === 'Performance')?.value as number;
-  const a11y = diagnostics.find(d => d.name === 'Accessibility')?.value as number;
-  const bp = diagnostics.find(d => d.name === 'Best Practices')?.value as number;
-  const seo = diagnostics.find(d => d.name === 'SEO')?.value as number;
+  const perf = diagnosticMap.get('Performance')?.value as number;
+  const a11y = diagnosticMap.get('Accessibility')?.value as number;
+  const bp = diagnosticMap.get('Best Practices')?.value as number;
+  const seo = diagnosticMap.get('SEO')?.value as number;
   const scores = [perf, a11y, bp, seo].filter(s => s !== undefined);
   const averageScore = scores.length > 0 ? scores.reduce((sum, val) => sum + val, 0) / scores.length : 0;
 
@@ -35,6 +42,7 @@ const OverallTab: React.FC<OverallTabProps> = ({ diagnostics }) => {
           size={192} 
           strokeWidth={8}
           isOverall={true}
+          label="Overall website quality score"
         />
       </div>
       <h2 className="text-xl font-semibold text-white mt-2">Overall Score</h2>

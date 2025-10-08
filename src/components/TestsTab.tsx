@@ -1,10 +1,9 @@
 'use client';
 
 import React from 'react';
-import { TestResult } from '@/utils/resultParser';
 
 interface TestsTabProps {
-  tests: TestResult[];
+  tests: any[];
 }
 
 const TestsTab: React.FC<TestsTabProps> = ({ tests }) => {
@@ -18,7 +17,7 @@ const TestsTab: React.FC<TestsTabProps> = ({ tests }) => {
 
   return (
     <div className="space-y-4">
-      {tests.map((test: TestResult, index: number) => (
+      {tests.map((test: any, index: number) => (
         <div key={index} className="flex items-center gap-4 p-4 bg-gray-900/40 rounded-xl border border-gray-700">
           <div className="font-medium text-gray-200 flex-1 min-w-0 truncate">
             {test.name}

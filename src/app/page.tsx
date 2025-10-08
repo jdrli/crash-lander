@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { parseResults, type ParsedResults, type TestResult } from '@/utils/resultParser';
+import { parseResults, type ParsedResults } from '@/utils/resultParser';
 import OverallTab from '@/components/OverallTab';
 import DiagnosticsTab from '@/components/DiagnosticsTab';
 import TestsTab from '@/components/TestsTab';
@@ -16,7 +16,6 @@ export default function Home() {
   const [particles, setParticles] = useState<Array<{x: number, y: number, size: number, animationDuration: number, animationDelay: number}>>([]);
   const [activeTab, setActiveTab] = useState<'overall' | 'diagnostics' | 'tests'>('overall');
   const [animationKey, setAnimationKey] = useState(0);
-  const [diagnosticCategory, setDiagnosticCategory] = useState<'categories' | 'diagnostics' | 'metrics' | 'all'>('all');
 
   // Create random stars for the background on client side only to prevent hydration errors
   useEffect(() => {
@@ -78,10 +77,7 @@ export default function Home() {
     }
   };
 
-  // Filter diagnostics based on selected category
-  const filteredDiagnostics = parsedResults?.diagnostics?.filter(diag => 
-    diagnosticCategory === 'all' || diag.category === diagnosticCategory
-  ) || [];
+
 
 
 

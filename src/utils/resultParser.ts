@@ -21,7 +21,16 @@ const determineStatus = (value: any): string => {
     return value >= 0.7 ? 'PASS' : 'FAIL';
   }
   if (typeof value === 'string') {
-    return value.toLowerCase() === 'pass' || value.toLowerCase() === 'true' || value !== 'fail' ? 'PASS' : 'FAIL';
+    const lowerValue = value.toLowerCase().trim();
+    // Strict checks for known pass/fail tokens
+    if (['pass', 'true', 'ok', 'success'].includes(lowerValue)) {
+      return 'PASS';
+    }
+    if (['fail', 'false', 'error'].includes(lowerValue)) {
+      return 'FAIL';
+    }
+    // For other string values, consider non-empty strings as PASS
+    return value.trim() ? 'PASS' : 'FAIL';
   }
   return value ? 'PASS' : 'FAIL';
 };
@@ -142,7 +151,7 @@ export const parseResults = (apiResults: any): ParsedResults => {
                            (typeof item === 'object' ? 
                             (item.title || item.id || item.name || item.message || JSON.stringify(item)) : 
                             String(item));
-              const status = item.status || determineStatus(item.score !== undefined ? item.score : item.value);
+              const status = item.status || determineStatus(value);
               const category = categorizeDiagnostic(name);
               
               diagnostics.push({
@@ -211,7 +220,7 @@ export const parseResults = (apiResults: any): ParsedResults => {
                          (typeof item === 'object' ? 
                           (item.title || item.id || item.name || item.message || JSON.stringify(item)) : 
                           String(item));
-            const status = item.status || determineStatus(item.passed !== undefined ? item.passed : item.value);
+            const status = item.status || determineStatus(value);
             
             tests.push({
               name,

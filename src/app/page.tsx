@@ -1,14 +1,21 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { parseResults, type ParsedResults } from '@/utils/resultParser';
+import OverallTab from '@/components/OverallTab';
+import DiagnosticsTab from '@/components/DiagnosticsTab';
+import TestsTab from '@/components/TestsTab';
 
 export default function Home() {
   const [url, setUrl] = useState('');
-  const [results, setResults] = useState<any>(null);
+  const [rawResults, setRawResults] = useState<any>(null);
+  const [parsedResults, setParsedResults] = useState<ParsedResults | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [stars, setStars] = useState<Array<{x: number, y: number, size: number, opacity: number}>>([]);
   const [particles, setParticles] = useState<Array<{x: number, y: number, size: number, animationDuration: number, animationDelay: number}>>([]);
+  const [activeTab, setActiveTab] = useState<'overall' | 'diagnostics' | 'tests'>('overall');
+  const [animationKey, setAnimationKey] = useState(0);
 
   // Create random stars for the background on client side only to prevent hydration errors
   useEffect(() => {
@@ -57,7 +64,11 @@ export default function Home() {
       }
 
       const data = await response.json();
-      setResults(data.results);
+      setRawResults(data);
+      
+      // Parse the results using our utility function
+      const parsed = parseResults(data.results);
+      setParsedResults(parsed);
     } catch (err) {
       setError('Failed to fetch data from the API. Make sure the server is running.');
       console.error(err);
@@ -65,6 +76,10 @@ export default function Home() {
       setLoading(false);
     }
   };
+
+
+
+
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-black to-gray-900 text-white overflow-hidden relative">
@@ -105,7 +120,7 @@ export default function Home() {
       </div>
 
       <div className="relative z-10 min-h-screen py-12 px-4 sm:px-6 lg:px-8 flex flex-col items-center justify-center">
-        <div className="max-w-2xl w-full text-center">
+        <div className="max-w-4xl w-full text-center">
           {/* Spaceship logo */}
           <div className="flex justify-center mb-6">
             <div className="w-24 h-24">
@@ -128,7 +143,7 @@ export default function Home() {
                 <circle cx="50" cy="40" r="4" fill="#ffffff" />
                 
                 {/* Glow effect */}
-                <circle cx="50" cy="50" r="35" fill="none" stroke="#818cf8" stroke-width="2" stroke-opacity="0.3" />
+                <circle cx="50" cy="50" r="35" fill="none" stroke="#818cf8" strokeWidth="2" strokeOpacity="0.3" />
               </svg>
             </div>
           </div>
@@ -138,7 +153,7 @@ export default function Home() {
             Crash Lander
           </h1>
           <p className="text-lg text-gray-300 mb-10">
-            Navigate the cosmos of web quality with comprehensive QA testing
+            Comprehensive QA Testing Dashboard
           </p>
 
           {/* Form section */}
@@ -171,31 +186,61 @@ export default function Home() {
           </div>
 
           {/* Results section */}
-          {results && (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl">
-              <h2 className="text-xl font-bold text-white mb-6">Scan Results for: {results.url}</h2>
+          {rawResults && (
+            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl w-full transition-all duration-300 ease-in-out">
+              <h2 className="text-xl font-bold text-white mb-6">Scan Results for: {rawResults?.url}</h2>
               
-              <div className="space-y-6">
-                {results.results.map((result: any, index: number) => (
-                  <div key={index} className="border border-gray-600 rounded-xl p-4 bg-gray-900/30">
-                    <div className="flex justify-between items-start">
-                      <h3 className="text-lg font-medium text-white">{result.type}</h3>
-                      <span className={`px-3 py-1 rounded-full text-sm font-medium ${
-                        result.status === 'PASS' 
-                          ? 'bg-green-500/20 text-green-400 border border-green-500/30' 
-                          : 'bg-red-500/20 text-red-400 border border-red-500/30'
-                      }`}>
-                        {result.status}
-                      </span>
-                    </div>
-                    <div className="mt-2 text-sm text-gray-300">
-                      <pre className="bg-gray-900/50 p-3 rounded-lg overflow-x-auto text-left">
-                        {JSON.stringify(result.result, null, 2)}
-                      </pre>
-                    </div>
-                  </div>
-                ))}
+              {/* Tabs for Diagnostics and Tests */}
+              <div className="flex border-b border-gray-600 mb-6">
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    activeTab === 'overall'
+                      ? 'text-purple-400 border-b-2 border-purple-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('overall'); setAnimationKey(prev => prev + 1); }}
+                >
+                  Overall
+                </button>
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    activeTab === 'diagnostics'
+                      ? 'text-purple-400 border-b-2 border-purple-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('diagnostics'); setAnimationKey(prev => prev + 1); }}
+                >
+                  Diagnostics
+                </button>
+                <button
+                  className={`py-2 px-4 font-medium text-sm ${
+                    activeTab === 'tests'
+                      ? 'text-purple-400 border-b-2 border-purple-400'
+                      : 'text-gray-400 hover:text-gray-300'
+                  }`}
+                  onClick={(e) => { e.preventDefault(); setActiveTab('tests'); setAnimationKey(prev => prev + 1); }}
+                >
+                  Tests
+                </button>
               </div>
+
+              {/* Content container to prevent layout shifts */}
+              <div className="relative min-h-[300px]">
+                {/* Overall section showing average of all diagnostics */}
+                {activeTab === 'overall' && parsedResults && (
+                  <OverallTab diagnostics={parsedResults.diagnostics} key={`overall-${animationKey}`} />
+                )}
+
+                {/* Diagnostics section with circular progress bars in a row */}
+                {activeTab === 'diagnostics' && parsedResults && (
+                  <DiagnosticsTab diagnostics={parsedResults.diagnostics} key={`diagnostics-${animationKey}`} />
+                )}
+
+                {/* Tests section */}
+                {activeTab === 'tests' && parsedResults && (
+                  <TestsTab tests={parsedResults.tests} key={`tests-${animationKey}`} />
+                )}
+              </div> {/* Closing relative container */}
             </div>
           )}
         </div>
@@ -203,6 +248,14 @@ export default function Home() {
 
       {/* Custom animation styles */}
       <style jsx global>{`
+        @keyframes float {
+          0% { transform: translate(0, 0) rotate(0deg); }
+          25% { transform: translate(5px, 10px) rotate(5deg); }
+          50% { transform: translate(0, 5px) rotate(0deg); }
+          75% { transform: translate(-5px, 10px) rotate(-5deg); }
+          100% { transform: translate(0, 0) rotate(0deg); }
+        }
+        
         @keyframes float {
           0% { transform: translate(0, 0) rotate(0deg); }
           25% { transform: translate(5px, 10px) rotate(5deg); }

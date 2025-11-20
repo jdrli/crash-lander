@@ -167,76 +167,108 @@ export default function Home() {
           />
 
           {/* Results section */}
-          {rawResults && (
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl w-full transition-all duration-300 ease-in-out">
-              <h2 className="text-xl font-bold text-white mb-6">Scan Results for: {rawResults?.url}</h2>
-              
-              {/* Tabs for Diagnostics and Tests */}
-              <div className="flex border-b border-gray-600 mb-6">
-                <button
-                  className={`py-2 px-4 font-medium text-sm ${
-                    activeTab === 'overall'
-                      ? 'text-purple-400 border-b-2 border-purple-400'
-                      : 'text-gray-400 hover:text-gray-300'
-                  }`}
-                  onClick={(e) => { e.preventDefault(); setActiveTab('overall'); setAnimationKey(prev => prev + 1); }}
-                >
-                  Overall
-                </button>
-                <button
-                  className={`py-2 px-4 font-medium text-sm ${
-                    activeTab === 'diagnostics'
-                      ? 'text-purple-400 border-b-2 border-purple-400'
-                      : 'text-gray-400 hover:text-gray-300'
-                  }`}
-                  onClick={(e) => { e.preventDefault(); setActiveTab('diagnostics'); setAnimationKey(prev => prev + 1); }}
-                >
-                  Diagnostics
-                </button>
-                <button
-                  className={`py-2 px-4 font-medium text-sm ${
-                    activeTab === 'tests'
-                      ? 'text-purple-400 border-b-2 border-purple-400'
-                      : 'text-gray-400 hover:text-gray-300'
-                  }`}
-                  onClick={(e) => { e.preventDefault(); setActiveTab('tests'); setAnimationKey(prev => prev + 1); }}
-                >
-                  Tests
-                </button>
+          <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-xl p-6 shadow-2xl w-full transition-all duration-300 ease-in-out">
+            <h2 className="text-xl font-bold text-white mb-6">Scan Results for: {rawResults?.url || 'Enter a link to test'}</h2>
+            
+            {/* Tabs for Diagnostics and Tests with animated underline */}
+            <div className="relative flex border-b border-gray-600 mb-6">
+              {/* Animated sliding underline */}
+              <div 
+                className="absolute bottom-0 h-0.5 bg-purple-400 transition-all duration-300 ease-in-out"
+                style={{
+                  width: activeTab === 'overall' ? '60px' : 
+                        activeTab === 'diagnostics' ? '85px' : 
+                        '40px',
+                  left: activeTab === 'overall' ? 'calc(16.666% - 30px)' : 
+                       activeTab === 'diagnostics' ? 'calc(50% - 42px)' : 
+                       'calc(83.333% - 20px)',
+                }}
+              />
+              <button
+                className={`flex-1 py-2 px-4 font-medium text-sm transition-colors duration-300 relative ${
+                  activeTab === 'overall'
+                    ? 'text-purple-400'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+                onClick={(e) => { e.preventDefault(); setActiveTab('overall'); setAnimationKey(prev => prev + 1); }}
+              >
+                Overall
+              </button>
+              <button
+                className={`flex-1 py-2 px-4 font-medium text-sm transition-colors duration-300 relative ${
+                  activeTab === 'diagnostics'
+                    ? 'text-purple-400'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+                onClick={(e) => { e.preventDefault(); setActiveTab('diagnostics'); setAnimationKey(prev => prev + 1); }}
+              >
+                Diagnostics
+              </button>
+              <button
+                className={`flex-1 py-2 px-4 font-medium text-sm transition-colors duration-300 relative ${
+                  activeTab === 'tests'
+                    ? 'text-purple-400'
+                    : 'text-gray-400 hover:text-gray-300'
+                }`}
+                onClick={(e) => { e.preventDefault(); setActiveTab('tests'); setAnimationKey(prev => prev + 1); }}
+              >
+                Tests
+              </button>
+            </div>
+
+            {/* Content container to prevent layout shifts */}
+            <div className="relative min-h-[300px]">
+              {/* Overall section showing average of all diagnostics */}
+              <div 
+                className={`absolute inset-0 transition-opacity duration-300 ${
+                  activeTab === 'overall' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                }`}
+              >
+                {parsedResults ? (
+                  <OverallTab diagnostics={parsedResults.diagnostics} key={`overall-${animationKey}`} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <p>Enter a website URL to see overall statistics</p>
+                  </div>
+                )}
               </div>
 
-              {/* Content container to prevent layout shifts */}
-              <div className="relative min-h-[300px]">
-                {/* Overall section showing average of all diagnostics */}
-                {activeTab === 'overall' && parsedResults && (
-                  <OverallTab diagnostics={parsedResults.diagnostics} key={`overall-${animationKey}`} />
-                )}
-
-                {/* Diagnostics section with circular progress bars in a row */}
-                {activeTab === 'diagnostics' && parsedResults && (
+              {/* Diagnostics section with circular progress bars in a row */}
+              <div 
+                className={`absolute inset-0 transition-opacity duration-300 ${
+                  activeTab === 'diagnostics' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                }`}
+              >
+                {parsedResults ? (
                   <DiagnosticsTab diagnostics={parsedResults.diagnostics} key={`diagnostics-${animationKey}`} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <p>Enter a website URL to see detailed diagnostics</p>
+                  </div>
                 )}
+              </div>
 
-                {/* Tests section */}
-                {activeTab === 'tests' && parsedResults && (
+              {/* Tests section */}
+              <div 
+                className={`absolute inset-0 transition-opacity duration-300 ${
+                  activeTab === 'tests' ? 'opacity-100 z-10' : 'opacity-0 z-0 pointer-events-none'
+                }`}
+              >
+                {parsedResults ? (
                   <TestsTab tests={parsedResults.tests} key={`tests-${animationKey}`} />
+                ) : (
+                  <div className="flex items-center justify-center h-full text-gray-400">
+                    <p>Enter a website URL to see test results</p>
+                  </div>
                 )}
-              </div> {/* Closing relative container */}
-            </div>
-          )}
+              </div>
+            </div> {/* Closing relative container */}
+          </div>
         </div>
       </div>
 
       {/* Custom animation styles */}
       <style jsx global>{`
-        @keyframes float {
-          0% { transform: translate(0, 0) rotate(0deg); }
-          25% { transform: translate(5px, 10px) rotate(5deg); }
-          50% { transform: translate(0, 5px) rotate(0deg); }
-          75% { transform: translate(-5px, 10px) rotate(-5deg); }
-          100% { transform: translate(0, 0) rotate(0deg); }
-        }
-        
         @keyframes float {
           0% { transform: translate(0, 0) rotate(0deg); }
           25% { transform: translate(5px, 10px) rotate(5deg); }
